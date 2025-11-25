@@ -1,0 +1,14 @@
+PyQt6>=6.6.0
+pyqtgraph>=0.13.3
+numpy>=1.24.0
+psutil>=5.9.0
+torch>=2.0.0
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+matplotlib>=3.7.0
+tqdm>=4.65.0
+scikit-image>=0.21.0
+Pillow>=10.0.0
+qtawesome>=1.2.0
+pycolmap>=0.4.0
+opencv-python>=4.8.0
