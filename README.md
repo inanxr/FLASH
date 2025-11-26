@@ -9,7 +9,6 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Code style: professional](https://img.shields.io/badge/code%20style-professional-black)](https://github.com/psf/black)
 
 [Features](#-features) • [Installation](#-quick-start) • [Usage](#-usage) • [Documentation](#-documentation) • [Results](#-results)
 
@@ -19,7 +18,9 @@
 
 ## 🎯 What is FLASH?
 
-FLASH is a **production-ready** implementation of Instant-NGP for Neural Radiance Fields (NeRF). Train photorealistic 3D scenes from 2D images in **~3 minutes** on a single GPU — **100x faster** than vanilla NeRF.
+FLASH is an **experimental implementation** of Instant-NGP for Neural Radiance Fields (NeRF). A learning project exploring how to train 3D scenes from 2D images in **~3 minutes** on a single GPU — **100x faster** than vanilla NeRF.
+
+> **Note:** This is a research and learning project. While functional, it's still under development as I continue learning and improving it.
 
 <div align="center">
 
@@ -234,22 +235,6 @@ features = hash_encoding(xyz_positions)  # [N, 3] → [N, 80]
 
 A tiny 2-layer MLP processes encoded features:
 
-```python
-# Only 6.7K parameters vs. vanilla NeRF's 5M!
-rgb, density = mlp(features, view_dirs)  # [N, 32] → [N, 3], [N, 1]
-```
-
-### 3. Volume Rendering
-
-Classical NeRF volume rendering with optimizations:
-
-```python
-# Alpha compositing with occupancy grid acceleration
-color = Σ(T_i × α_i × c_i)  # Weighted sum along ray
-```
-
-## 🔧 Configuration
-
 Key hyperparameters in `config.py`:
 
 | Parameter | Default | Description |
@@ -288,13 +273,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **NeRF** by [Mildenhall et al.](https://www.matthewtancik.com/nerf)
 - Inspired by [nerf-pytorch](https://github.com/yenchenlin/nerf-pytorch)
 
-## 📧 Contact
+## 👨‍� About
 
-**Inan** - Project Maintainer
+**Imtamum H. Inan**  
+*Cyberneticist & AI Researcher*
 
+I'm a 13-year-old researcher from Bangladesh, exploring the intersection of artificial intelligence and 3D computer vision. FLASH is one of my experimental projects as I learn and build understanding of neural radiance fields and efficient neural representations.
+
+📧 **Contact**
 - Email: [inan@iseer.co](mailto:inan@iseer.co)
+- Organization: [Iseer Research](https://iseer.co)
 - GitHub: [@inanxr](https://github.com/inanxr)
-- Project Link: [https://github.com/inanxr/FLASH](https://github.com/inanxr/FLASH)
+- Project: [github.com/inanxr/FLASH](https://github.com/inanxr/FLASH)
 
 ---
 
