@@ -1,6 +1,6 @@
 """Instant-NGP configuration."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 import torch
 import os
@@ -28,9 +28,9 @@ class InstantNGPConfig:
     
     # --- Data & Rendering ---
     data_dir: str = 'data/nerf_synthetic/lego'
-    img_size: int = 400
+    img_size: int = 200           # Reduced size for speed
     white_background: bool = True
-    precompute_rays: bool = False
+    precompute_rays: bool = True  # Precompute enabled for speed
     max_train_images: Optional[int] = None
     num_val_images: int = 4
     num_coarse_samples: int = 64  # Reduced samples for speed/memory
@@ -67,6 +67,10 @@ class InstantNGPConfig:
         if self.device == 'cpu':
             print("⚠️  Running on CPU (no GPU detected)")
             print("   Training time: ~25 min  |  With GPU: ~10-15 min")
+
+    def to_dict(self):
+        """Converts configuration to a dictionary for serialization."""
+        return asdict(self)
 
     def print(self):
         """Prints the configuration in a human-readable, sectioned format."""
