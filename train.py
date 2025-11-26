@@ -1,19 +1,4 @@
-"""
-Training Script for Instant-NGP NeRF
-
-Optimized NeRF training using Instant-NGP hash encoding.
-Expected: 10-15 minutes with optimizations
-
-Usage:
-    # Quick test (1000 iterations, ~2 minutes)
-    python train.py --quick_test
-    
-    # Full training (5000 iterations, ~20-30 minutes)
-    python train.py --data_dir data/nerf_synthetic/lego
-    
-    # Resume from checkpoint
-    python train.py --resume checkpoints/instant_ngp_lego_2000.pth
-"""
+"""Training script for Instant-NGP NeRF."""
 
 import torch
 import torch.nn as nn
@@ -36,26 +21,15 @@ from config import InstantNGPConfig, get_instant_ngp_config, get_quick_test_conf
 
 
 class InstantNGPTrainer:
-    """
-    Instant-NGP Training Manager.
-    
-    Key features:
-    - Large batch size (16k rays)
-    - Adaptive learning rates for hash vs MLP
-    - Efficient convergence (5000 iterations)
-    - Fast rendering
-    """
     
     def __init__(self, config: InstantNGPConfig):
         self.config = config
         self.device = torch.device(config.device)
         
-        # Set random seed
         torch.manual_seed(config.seed)
         np.random.seed(config.seed)
         
-        # Initialize Instant-NGP model (single network, not coarse+fine)
-        print("Initializing Instant-NGP model...")
+        print("\n🚀 Initializing Instant-NGP...")
         self.model = InstantNGPNeRF(
             num_levels=config.num_levels,
             features_per_level=config.features_per_level,
@@ -67,19 +41,16 @@ class InstantNGPTrainer:
             use_viewdirs=config.use_viewdirs
         ).to(self.device)
         
-        # Optimize model with torch.compile (PyTorch 2.0+)
         if hasattr(torch, 'compile') and self.device.type == 'cuda':
-            print("Optimizing model with torch.compile()...")
+            print("⚡ Optimizing with torch.compile()...")
             try:
                 self.model = torch.compile(self.model)
             except Exception as e:
-                print(f"Warning: torch.compile failed: {e}")
+                print(f"   Note: Compilation skipped ({str(e)[:50]}...)")
         
-        # Initialize volumetric renderer
-        # Create occupancy grid if enabled
         occupancy_grid = None
         if config.use_occupancy_grid:
-            print("Initializing occupancy grid...")
+            print("📦 Setting up occupancy grid...")
             occupancy_grid = OccupancyGrid(
                 resolution=config.occupancy_resolution,
                 aabb_min=[-1.5, -1.5, -1.5],
@@ -97,8 +68,6 @@ class InstantNGPTrainer:
             occupancy_grid=occupancy_grid
         )
         
-        # Initialize optimizer with PER-PARAMETER learning rates
-        # Hash tables need HIGHER LR than MLP
         self.optimizer = optim.Adam([
             {
                 'params': self.model.hash_encoding.parameters(),
@@ -112,14 +81,12 @@ class InstantNGPTrainer:
             }
         ])
         
-        # Learning rate scheduler
         self.scheduler = optim.lr_scheduler.ExponentialLR(
             self.optimizer,
             gamma=config.lr_decay_rate
         )
         
-        # Load datasets
-        print("Loading datasets...")
+        print("📂 Loading datasets...")
         self.train_dataset = NeRFDataset(
             config.data_dir,
             split='train',
@@ -139,7 +106,7 @@ class InstantNGPTrainer:
                 max_images=config.num_val_images
             )
         except FileNotFoundError:
-            print("  Warning: No validation set, using test set")
+            print("   No val set found, using test set...")
             try:
                 self.val_dataset = NeRFDataset(
                     config.data_dir,
@@ -150,47 +117,37 @@ class InstantNGPTrainer:
                     max_images=config.num_val_images
                 )
             except FileNotFoundError:
-                print("  Warning: No validation or test set found")
+                print("   Warning: No val/test data found")
                 self.val_dataset = None
         
-        # TensorBoard writer
         log_path = os.path.join(config.log_dir, config.experiment_name)
         self.writer = SummaryWriter(log_path)
-        print(f"  TensorBoard logs: {log_path}")
-        print()
+        print(f"   Logs → {log_path}\n")
         
-        # Training state
         self.iteration = 0
         self.best_psnr = 0.0
         self.training_start_time = None
         
-        # Mixed precision scaler (if using GPU)
         self.scaler = torch.cuda.amp.GradScaler() if config.use_mixed_precision else None
     
     def train(self):
-        """Main training loop."""
         config = self.config
         
-        print("Starting Instant-NGP training...")
-        print(f"  Total iterations: {config.num_iterations:,}")
-        print(f"  Batch size: {config.batch_size} rays")
-        print(f"  Device: {self.device}")
-        print(f"  Expected time: {'20-30 min (CPU)' if self.device.type == 'cpu' else '2-5 min (GPU)'}")
+        print("\n" + "="*60)
+        print("🎯 Starting Training")
+        print("="*60)
+        print(f"   Iterations: {config.num_iterations:,}  |  Batch: {config.batch_size} rays")
+        print(f"   Device: {self.device}  |  Time: {'~25 min' if self.device.type == 'cpu' else '~3 min'}")
         print()
         
-        # Training loop
         self.training_start_time = time.time()
-        
-        # Progress bar
         pbar = tqdm(range(self.iteration, config.num_iterations), desc="Training")
         
         for iteration in pbar:
             self.iteration = iteration
             
-            # Training step
             metrics = self.train_step()
             
-            # Update progress bar
             pbar.set_postfix({
                 'loss': f"{metrics['loss']:.4f}",
                 'psnr': f"{metrics['psnr']:.2f}",
@@ -198,109 +155,88 @@ class InstantNGPTrainer:
                 'lr_mlp': f"{self.get_lr('mlp'):.2e}"
             })
             
-            # Logging
             if iteration % config.log_every == 0:
                 self.log_metrics(metrics, iteration)
             
-            # EARLY VALIDATION (500 iterations) - catch issues early!
             if iteration == 500 and self.val_dataset is not None:
-                print(f"\n🔍 Early validation at iteration {iteration} (checking if training is working)...")
+                print(f"\n📸  Quick check @ {iteration} iters...")
                 self.render_validation_image(iteration)
-                print("  Check outputs/ directory to see if image looks reasonable")
-                print("  If blank/noisy: training might have issues\n")
+                print("   → Check outputs/ to verify progress\n")
             
-            # Regular validation
             if iteration % config.validate_every == 0 and iteration > 0:
                 if self.val_dataset is not None:
                     val_metrics = self.validate()
                     self.log_validation(val_metrics, iteration)
             
-            # Save checkpoint
             if iteration % config.save_checkpoint_every == 0 and iteration > 0:
                 self.save_checkpoint(iteration)
             
-            # Update occupancy grid
             if (self.renderer.occupancy_grid is not None and 
                 iteration % config.update_grid_every == 0 and 
                 iteration > 0):
-                print(f"\nUpdating occupancy grid at iteration {iteration}...")
+                print(f"\n🔄 Updating occupancy grid @ {iteration}...")
                 self.renderer.occupancy_grid.update_from_density(
                     self.model,
                     threshold=config.occupancy_threshold
                 )
             
-            # Learning rate decay
             if iteration % config.lr_decay_steps == 0 and iteration > 0:
                 self.scheduler.step()
             
-            # Clear CUDA cache periodically
             if self.device.type == 'cuda' and iteration % 100 == 0:
                 torch.cuda.empty_cache()
         
-        # Final checkpoint
         self.save_checkpoint(config.num_iterations, is_final=True)
         
-        # Training complete
         elapsed = time.time() - self.training_start_time
-        print()
-        print("=" * 60)
-        print("Instant-NGP Training Complete!")
-        print(f"  Total time: {elapsed/60:.1f} minutes ({elapsed/3600:.2f} hours)")
+        print("\n" + "="*60)
+        print("✅ Training Complete!")
+        print("="*60)
+        print(f"   Time: {elapsed/60:.1f} min ({elapsed:.0f}s)")
         print(f"  Best PSNR: {self.best_psnr:.2f} dB")
-        print(f"  Final checkpoint: {os.path.join(config.checkpoint_dir, f'{config.experiment_name}_final.pth')}")
-        print("=" * 60)
+        print(f"   Checkpoint: {os.path.join(config.checkpoint_dir, f'{config.experiment_name}_final.pth')}")
+        print("="*60)
+        print()
         
         self.writer.close()
     
     def train_step(self) -> Dict[str, float]:
-        """Single training iteration."""
         self.model.train()
         
-        # Sample batch of rays
         rays_o, rays_d, target_rgb = self.sample_rays_batch()
         rays_o = rays_o.to(self.device)
         rays_d = rays_d.to(self.device)
         target_rgb = target_rgb.to(self.device)
         
-        # Forward pass
         if self.scaler is not None:
             with torch.cuda.amp.autocast():
-                # Render rays using Instant-NGP model
-                # Note: Using same model for both coarse and fine (Instant-NGP doesn't need separate)
                 rgb_pred, depth, _  = self.renderer.render_rays(
                     rays_o, rays_d,
-                    self.model,  # coarse
-                    self.model,  # fine (same model)
+                    self.model,
+                    self.model,
                     randomize=True,
                     return_extras=False
                 )
                 
-                # Compute loss
                 loss = compute_mse(rgb_pred, target_rgb)
             
-            # Backward with mixed precision
             self.optimizer.zero_grad()
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
         else:
-            # Standard precision
             rgb_pred, depth, _ = self.renderer.render_rays(
                 rays_o, rays_d,
                 self.model,
                 self.model,
                 randomize=True,
-                return_extras=False
-            )
+                return_extras=False)
             
-            # Compute loss
             loss = compute_mse(rgb_pred, target_rgb)
             
-            # Backward
             self.optimizer.zero_grad()
             loss.backward()
             
-            # TROUBLESHOOTING: Check for NaN gradients
             has_nan_grad = False
             for name, param in self.model.named_parameters():
                 if param.grad is not None and not torch.isfinite(param.grad).all():
@@ -310,11 +246,10 @@ class InstantNGPTrainer:
             if has_nan_grad:
                 print("⚠️  Training instability detected! Skipping this step.")
                 print("   TIP: Try reducing learning rate (--lr_hash 5e-3)")
-                self.optimizer.zero_grad()  # Don't update with bad gradients
+                self.optimizer.zero_grad()
             else:
                 self.optimizer.step()
         
-        # Compute metrics
         with torch.no_grad():
             psnr = compute_psnr(rgb_pred, target_rgb)
         
@@ -324,7 +259,6 @@ class InstantNGPTrainer:
         }
     
     def sample_rays_batch(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Sample a batch of rays from training set."""
         if self.config.precompute_rays:
             rays_o, rays_d, rgb = self.train_dataset[0]
             num_rays = rays_o.shape[0]
@@ -340,7 +274,6 @@ class InstantNGPTrainer:
             return rays_o[indices], rays_d[indices], rgb[indices]
     
     def validate(self) -> Dict[str, float]:
-        """Validate on held-out images."""
         self.model.eval()
         
         print(f"\n🔍 Validation at iteration {self.iteration}...")

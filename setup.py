@@ -7,11 +7,11 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="FLASH",
+    name="flash-nerf",
     version="1.0.0",
     author="Inan",
     author_email="",
-    description="Neural Radiance Fields (NeRF) implementation from scratch",
+    description="FLASH: Fast Learning for Accurate Scene Hashing with Instant-NGP",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/inanxr/FLASH",
@@ -31,9 +31,8 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "nerf-train=train:main",
-            "nerf-render=render:main",
-            "nerf-demo=demo:run_demo",
+            "flash-train=train:main",
+            "flash-render=render:main",
         ],
     },
 )

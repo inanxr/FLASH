@@ -1,13 +1,18 @@
-# Byte-compiled / optimized / DLL files
+# ============================================
+# Python
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
+*.pyc
+*.pyo
+*.pyd
 .Python
+
+# ============================================
+# Distribution / Packaging
+# ============================================
 build/
 develop-eggs/
 dist/
@@ -20,18 +25,16 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# PyTorch
-*.pth
-*.pt
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Environment
+# ============================================
+# Virtual Environments
+# ============================================
 .env
 .venv
 env/
@@ -39,28 +42,226 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+pythonenv*/
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ============================================
+# PyTorch & ML Models
+# ============================================
+# Trained model checkpoints (large files)
+checkpoints/*.pth
+checkpoints/*.pt
+*.ckpt
 
-# OS
-.DS_Store
-Thumbs.db
+# Keep example/demo checkpoints if needed
+!checkpoints/demo*.pth
+!checkpoints/example*.pth
 
-# Project specific
-checkpoints/
-outputs/
+# Model cache
+.cache/
+*.pkl
+*.pickle
+
+# ============================================
+# Training Artifacts
+# ============================================
+# TensorBoard logs
 logs/
+runs/
+tensorboard_logs/
+tb_logs/
+
+# Training outputs
+outputs/
+results/
+experiments/
+
+# Rendered images/videos
 renders/
 demo_renders/
-data/nerf_synthetic/
-data/*/
-*.zip
+test_renders/
+video_outputs/
 
-# Temporary files
+# ============================================
+# Data & Datasets
+# ============================================
+# Downloaded datasets
+data/nerf_synthetic/
+data/lego/
+data/ship/
+data/drums/
+data/ficus/
+data/hotdog/
+data/materials/
+data/mic/
+data/chair/
+data/*/
+
+# Compressed data
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Keep README files in data directory
+!data/README.md
+!data/**/*.md
+
+# ============================================
+# Jupyter Notebooks
+# ============================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+**/.ipynb_checkpoints/
+
+# Jupyter notebook outputs (optional)
+# *.ipynb
+
+# ============================================
+# IDEs & Editors
+# ============================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.*.sw[a-p]
+
+# Emacs
+\#*\#
+.\#*
+
+# Spyder
+.spyderproject
+.spyproject
+
+# ============================================
+# Operating System
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================
+# PyQt6 / Qt
+# ============================================
+*.qmlc
+*.jsc
+*.pyqtc
+.qt_for_python/
+ui_*.py
+
+# ============================================
+# Testing & Coverage
+# ============================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.cache
+
+# ============================================
+# Documentation
+# ============================================
+docs/_build/
+site/
+.sphinx/
+
+# ============================================
+# Profiling & Benchmarking
+# ============================================
+*.prof
+*.lprof
+*.py.prof
+
+# ============================================
+# Temporary & Cache Files
+# ============================================
 *.tmp
+*.temp
 *.bak
+*.swp
+*.log
+*.pid
+*.seed
+*~
+.cache/
+tmp/
+temp/
+
+# ============================================
+# FLASH-Specific
+# ============================================
+# Keep important checkpoints but ignore iterations
+checkpoints/*_[0-9]*.pth
+checkpoints/instant_ngp_*_[0-9]*.pth
+
+# Keep final and best checkpoints
+!checkpoints/*_final.pth
+!checkpoints/*_best.pth
+
+# Sample/test outputs
+outputs/test_*.png
+outputs/debug_*.png
+
+# ============================================
+# Git & Version Control
+# ============================================
+*.orig
+*.rej
+.git/
+.gitattributes
+
+# ============================================
+# Misc
+# ============================================
+# Backup files
+*-old
+*-backup
+*.backup
+
+# Lock files (keep requirements.txt)
+poetry.lock
+Pipfile.lock
+
+# Environment variables
+.env.local
+.env.*.local
+
+# Debug files
+debug/
+.debug/

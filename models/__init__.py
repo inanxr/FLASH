@@ -1,9 +1,4 @@
-"""
-NeRF Models Package
-
-Contains neural network architectures and rendering components for 
-Instant-NGP NeRF implementation.
-"""
+"""Instant-NGP models and rendering components."""
 
 from .hash_encoding import HashEncoding
 from .nerf_model import InstantNGPNeRF

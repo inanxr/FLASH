@@ -1,25 +1,4 @@
-"""
-NeRF Model
-
-Tiny neural network using hash encoding instead of positional encoding.
-Optimized NeRF architecture using hash encoding and compact MLP.
-
-Paper: "Instant Neural Graphics Primitives with a Multiresolution Hash Encoding"
-Authors: Müller et al. (NVIDIA), SIGGRAPH 2022
-
-KEY DIFFERENCES FROM VANILLA NERF:
-- Hash encoding (32D) instead of positional encoding (63D)
-- Tiny MLP: 2 layers × 64 dims (vs 6 layers × 128 dims)
-- 95% fewer parameters: ~6.5K vs ~500K
-- 10-100x faster training
-
-EXAMPLE:
-    >>> model = InstantNGPNeRF()
-    >>> positions = torch.randn(100, 3)
-    >>> directions = F.normalize(torch.randn(100, 3), dim=-1)
-    >>> rgb, density = model(positions, directions)
-    >>> print(rgb.shape, density.shape)  # torch.Size([100, 3]) torch.Size([100, 1])
-"""
+"""Instant-NGP NeRF model with hash encoding."""
 
 import torch
 import torch.nn as nn
@@ -29,30 +8,6 @@ from typing import Optional, Tuple
 
 
 class InstantNGPNeRF(nn.Module):
-    """
-    Instant-NGP NeRF Network using hash encoding.
-    
-    Architecture:
-        Input: (x,y,z) position + (θ,φ) direction
-          ↓
-        Hash Encoding: 32D learned features
-          ↓
-        Concat with direction: 32 + 3 = 35D
-          ↓
-        MLP: 2 layers × 64 dims
-          ↓
-        Output: RGB (3) + density (1)
-    
-    Args:
-        num_levels: Number of hash resolution levels (default: 16)
-        features_per_level: Features per hash level (default: 2)
-        log2_hashmap_size: Hash table size as log2 (default: 19)
-        base_resolution: Coarsest grid (default: 16)
-        finest_resolution: Finest grid (default: 512)
-        hidden_dim: MLP hidden dimension (default: 64)
-        num_layers: Number of MLP layers (default: 2)
-        use_viewdirs: Use viewing directions (default: True)
-    """
     
     def __init__(
         self,
@@ -69,7 +24,6 @@ class InstantNGPNeRF(nn.Module):
         
         self.use_viewdirs = use_viewdirs
         
-        # Hash encoding for positions
         self.hash_encoding = HashEncoding(
             num_levels=num_levels,
             features_per_level=features_per_level,
@@ -78,11 +32,9 @@ class InstantNGPNeRF(nn.Module):
             finest_resolution=finest_resolution,
         )
         
-        hash_dim = self.hash_encoding.get_output_dim()  # 32 for default
-        dir_dim = 3 if use_viewdirs else 0  # Raw direction (dx, dy, dz)
+        hash_dim = self.hash_encoding.get_output_dim()
+        dir_dim = 3 if use_viewdirs else 0
         
-        # Build tiny MLP
-        # Compact 2-layer MLP
         layers = []
         in_dim = hash_dim + dir_dim
         
@@ -91,42 +43,23 @@ class InstantNGPNeRF(nn.Module):
             layers.append(nn.ReLU(inplace=True))
             in_dim = hidden_dim
         
-        # Output layer: RGB (3) + density (1)
         layers.append(nn.Linear(hidden_dim, 4))
-        
         self.mlp = nn.Sequential(*layers)
         
-        # Print network info
         num_params = sum(p.numel() for p in self.parameters())
         hash_params = sum(p.numel() for p in self.hash_encoding.parameters())
         mlp_params = num_params - hash_params
         
-        print(f"\nInstant-NGP Network:")
-        print(f"  Hash encoding: {hash_dim}D (from {num_levels} levels)")
-        print(f"  MLP: {num_layers} layers × {hidden_dim} dims")
-        print(f"  Hash params: {hash_params:,} (learned)")
-        print(f"  MLP params:  {mlp_params:,}")
-        print(f"  Total:       {num_params:,}")
-        print(f"  Instant-NGP efficiency: ~77x fewer params")
-        print(f"  Reduction:   {500_000 / mlp_params:.1f}x fewer MLP params")
+        print(f"\n🧠 Network: {num_params:,} total params")
+        print(f"   Hash: {hash_params:,}  |  MLP: {mlp_params:,}")
+        print(f"   Architecture: {num_layers}×{hidden_dim}D")
+        print(f"   ~95% smaller than vanilla NeRF")
     
     def forward(
         self,
         positions: torch.Tensor,
         directions: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Forward pass through Instant-NGP network.
-        
-        Args:
-            positions: [N, 3] 3D positions in world space
-            directions: [N, 3] viewing directions (normalized), or None
-            
-        Returns:
-            rgb: [N, 3] RGB colors in [0, 1]
-            density: [N, 1] volume density ≥ 0
-        """
-        # Input validation
         if positions.dim() != 2 or positions.shape[1] != 3:
             raise ValueError(f"Expected positions shape [N, 3], got {positions.shape}")
         
@@ -136,49 +69,30 @@ class InstantNGPNeRF(nn.Module):
             if directions.shape != positions.shape:
                 raise ValueError(f"Directions shape {directions.shape} != positions shape {positions.shape}")
             
-            # Ensure directions are normalized
             directions = F.normalize(directions, dim=-1)
         
-        # Encode positions with hash encoding
-        # This is where the speed comes from - learnable hash features!
-        encoded_pos = self.hash_encoding(positions)  # [N, 32]
+        encoded_pos = self.hash_encoding(positions)
         
-        # Concatenate with viewing direction
         if self.use_viewdirs:
-            x = torch.cat([encoded_pos, directions], dim=-1)  # [N, 35]
+            x = torch.cat([encoded_pos, directions], dim=-1)
         else:
-            x = encoded_pos  # [N, 32]
+            x = encoded_pos
         
-        # Compact MLP for fast inference
-        output = self.mlp(x)  # [N, 4]
+        output = self.mlp(x)
+        rgb = torch.sigmoid(output[:, :3])
+        density = F.relu(output[:, 3:4])
         
-        # Split into RGB and density
-        rgb = torch.sigmoid(output[:, :3])  # [N, 3] clamped to [0, 1]
-        density = F.relu(output[:, 3:4])    # [N, 1] clamped to [0, ∞)
-        
-        # Sanity checks
         assert torch.isfinite(rgb).all(), "RGB contains NaN or Inf"
         assert torch.isfinite(density).all(), "Density contains NaN or Inf"
         
         return rgb, density
     
     def forward_with_density_only(self, positions: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass returning only density (for mesh extraction).
-        
-        Args:
-            positions: [N, 3] 3D positions
-            
-        Returns:
-            density: [N, 1] volume density
-        """
-        # Use zero directions (won't affect density much in practice)
         dummy_dirs = torch.zeros_like(positions) if self.use_viewdirs else None
         _, density = self.forward(positions, dummy_dirs)
         return density
     
     def get_num_parameters(self) -> int:
-        """Get total number of trainable parameters."""
         return sum(p.numel() for p in self.parameters())
 
 

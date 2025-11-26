@@ -1,17 +1,4 @@
-"""
-Dataset Download Script for NeRF
-
-Downloads NeRF synthetic datasets from official sources.
-
-Available scenes:
-- lego (default, iconic)
-- ship, drums, ficus, hotdog
-- materials, mic, chair
-
-Usage:
-    python download_dataset.py --scene lego
-    python download_dataset.py --scene ship --output_dir data/
-"""
+"""Dataset download script for NeRF Blender datasets."""
 
 import os
 import urllib.request
@@ -20,7 +7,6 @@ import argparse
 from tqdm import tqdm
 
 
-# Dataset URLs
 DATASET_URLS = {
     'lego': 'http://cseweb.ucsd.edu/~viscomp/projects/LF/papers/ECCV20/nerf/nerf_example_data.zip',
     'all': 'http://cseweb.ucsd.edu/~viscomp/projects/LF/papers/ECCV20/nerf/nerf_synthetic.zip'
@@ -28,7 +14,6 @@ DATASET_URLS = {
 
 
 class DownloadProgressBar(tqdm):
-    """Progress bar for downloads."""
     def update_to(self, b=1, bsize=1, tsize=None):
         if tsize is not None:
             self.total = tsize
@@ -36,13 +21,11 @@ class DownloadProgressBar(tqdm):
 
 
 def download_url(url: str, output_path: str):
-    """Download file from URL with progress bar."""
     with DownloadProgressBar(unit='B', unit_scale=True, miniters=1, desc=output_path) as t:
         urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 
 def extract_zip(zip_path: str, extract_dir: str):
-    """Extract ZIP file."""
     print(f"Extracting {zip_path}...")
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_dir)
@@ -50,16 +33,8 @@ def extract_zip(zip_path: str, extract_dir: str):
 
 
 def download_nerf_dataset(scene: str = 'lego', output_dir: str = 'data'):
-    """
-    Download NeRF synthetic dataset.
-    
-    Args:
-        scene: Scene name ('lego', 'ship', etc. or 'all' for all scenes)
-        output_dir: Output directory
-    """
     os.makedirs(output_dir, exist_ok=True)
     
-    # Determine URL
     if scene == 'lego':
         url = DATASET_URLS['lego']
         zip_name = 'nerf_example_data.zip'
@@ -70,17 +45,14 @@ def download_nerf_dataset(scene: str = 'lego', output_dir: str = 'data'):
     
     zip_path = os.path.join(output_dir, zip_name)
     
-    # Download
     if os.path.exists(zip_path):
         print(f"ZIP file already exists: {zip_path}")
     else:
         print(f"Downloading {scene} dataset from {url}...")
         download_url(url, zip_path)
     
-    # Extract
     extract_zip(zip_path, output_dir)
     
-    # Clean up ZIP
     print(f"Removing ZIP file...")
     os.remove(zip_path)
     
@@ -109,7 +81,6 @@ def main():
     parser.add_argument('--output_dir', type=str, default='data', help='Output directory')
     
     args = parser.parse_args()
-    
     download_nerf_dataset(args.scene, args.output_dir)
 
 

@@ -1,18 +1,4 @@
-"""
-Novel View Rendering for NeRF
-
-Render novel views from trained NeRF model and create videos.
-
-Usage:
-    # Render spiral video:
-    python render.py --checkpoint checkpoints/model.pth --create_video
-    
-    # Render 360° video:
-    python render.py --checkpoint checkpoints/model.pth --render_path 360
-    
-    # Render test views:
-    python render.py --checkpoint checkpoints/model.pth --render_test
-"""
+"""Novel view rendering for trained NeRF models."""
 
 import torch
 import torch.nn.functional as F
@@ -29,42 +15,22 @@ from utils.data_loader import NeRFDataset
 
 
 def generate_360_path(num_views=60, radius=2.5, height=0.0):
-    """
-    Generate 360° circular camera path.
-    
-    Args:
-        num_views: Number of camera positions
-        radius: Circle radius
-        height: Camera height (z coordinate)
-    
-    Returns:
-        poses: [num_views, 4, 4] camera-to-world matrices
-    """
     poses = []
     
     for i in range(num_views):
         angle = 2 * np.pi * i / num_views
         
-        # Camera position on circle
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)
         z = height
         
-        # Camera looking at origin
         forward = -np.array([x, y, z])
         forward = forward / np.linalg.norm(forward)
-        
-        # Up vector
         up = np.array([0, 0, 1])
-        
-        # Right vector
         right = np.cross(up, forward)
         right = right / np.linalg.norm(right)
-        
-        # Recalculate up
         up = np.cross(forward, right)
         
-        # Build pose matrix
         pose = np.eye(4)
         pose[:3, 0] = right
         pose[:3, 1] = up
@@ -77,48 +43,23 @@ def generate_360_path(num_views=60, radius=2.5, height=0.0):
 
 
 def generate_spiral_path(num_views=120, radius=2.0, height_range=0.5, n_spirals=2):
-    """
-    Generate spiral camera path (vertical movement + rotation).
-    
-    Args:
-        num_views: Number of camera positions
-        radius: Spiral radius
-        height_range: Vertical range
-        n_spirals: Number of complete spirals
-    
-    Returns:
-        poses: [num_views, 4, 4] camera-to-world matrices
-    """
     poses = []
     
     for i in range(num_views):
         t = i / num_views
-        
-        # Angle increases for rotation
         angle = 2 * np.pi * n_spirals * t
-        
-        # Height oscillates
         z = height_range * np.sin(2 * np.pi * n_spirals * t)
         
-        # Position on spiral
         x = radius * np.cos(angle)
         y = radius * np.sin(angle)
         
-        # Camera looking at origin
         forward = -np.array([x, y, z])
         forward = forward / np.linalg.norm(forward)
-        
-        # Up vector
         up = np.array([0, 0, 1])
-        
-        # Right vector
         right = np.cross(up, forward)
         right = right / (np.linalg.norm(right) + 1e-8)
-        
-        # Recalculate up
         up = np.cross(forward, right)
         
-        # Build pose matrix
         pose = np.eye(4)
         pose[:3, 0] = right
         pose[:3, 1] = up
@@ -137,29 +78,13 @@ def render_novel_views(
     device='cuda',
     output_dir='renders'
 ):
-    """
-    Render novel views from camera poses.
-    
-    Args:
-        checkpoint_path: Path to trained model checkpoint
-        poses: [N, 4, 4] camera-to-world matrices
-        img_size: Image resolution
-        device: 'cuda' or 'cpu'
-        output_dir: Output directory
-    
-    Returns:
-        images: List of rendered RGB images
-    """
-    # Load checkpoint
     print(f"Loading checkpoint from {checkpoint_path}...")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     
-    # Initialize model
     model = InstantNGPNeRF().to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
     
-    # Initialize renderer
     renderer = VolumetricRenderer(
         near=2.0,
         far=6.0,
@@ -167,7 +92,6 @@ def render_novel_views(
         num_fine_samples=64
     )
     
-    # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
     images = []
@@ -176,22 +100,18 @@ def render_novel_views(
     
     with torch.no_grad():
         for idx, pose in enumerate(tqdm(poses)):
-            # Get rays for this camera
             pose_tensor = torch.from_numpy(pose).float().to(device)
             
-            # Generate rays
             from utils.ray_utils import get_ray_bundle
             rays_o, rays_d = get_ray_bundle(
                 img_size, img_size,
-                focal_length=img_size * 0.7,  # Approximate focal length
+                focal_length=img_size * 0.7,
                 camera_to_world=pose_tensor
             )
             
-            # Flatten rays
             rays_o_flat = rays_o.reshape(-1, 3)
             rays_d_flat = rays_d.reshape(-1, 3)
             
-            # Render in chunks
             chunk_size = 4096
             rgb_chunks = []
             
@@ -208,11 +128,9 @@ def render_novel_views(
                 
                 rgb_chunks.append(rgb.cpu())
             
-            # Concatenate and reshape
             rgb_image = torch.cat(rgb_chunks, dim=0).reshape(img_size, img_size, 3)
             rgb_np = (rgb_image.numpy() * 255).astype(np.uint8)
             
-            # Save image
             img_path = os.path.join(output_dir, f'frame_{idx:04d}.png')
             Image.fromarray(rgb_np).save(img_path)
             
@@ -223,7 +141,6 @@ def render_novel_views(
 
 
 def create_video(image_dir, output_path='renders/video.mp4', fps=30):
-    """Create video from rendered images."""
     import glob
     
     image_files = sorted(glob.glob(os.path.join(image_dir, 'frame_*.png')))
@@ -246,7 +163,6 @@ def create_video(image_dir, output_path='renders/video.mp4', fps=30):
 
 
 def render_test_views(checkpoint_path, data_dir, device='cuda', output_dir='test_renders'):
-    """Render test set views for evaluation."""
     # Load test dataset
     try:
         test_dataset = NeRFDataset(data_dir, split='test', img_size=400)

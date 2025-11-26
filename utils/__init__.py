@@ -1,8 +1,4 @@
-"""
-NeRF Utilities Package
-
-Contains data loading, ray utilities, metrics, visualization, and mesh export tools.
-"""
+"""NeRF Utilities Package."""
 
 from .data_loader import NeRFDataset, get_rays
 from .ray_utils import sample_stratified, sample_hierarchical
