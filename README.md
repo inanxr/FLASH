@@ -23,59 +23,17 @@ FLASH is a **production-ready** implementation of Instant-NGP for Neural Radianc
 
 <div align="center">
 
-| Metric | Vanilla NeRF | **FLASH** |
-|--------|--------------|-----------|
-| **Training Time** | 5+ hours | **~3 min** ⚡ |
-| **Model Size** | ~20 MB | **64 MB** 📦 |
-| **Quality (PSNR)** | ~31 dB | **~32 dB** 🎨 |
-| **Architecture** | MLPs only | **Hash + MLP** 🧠 |
+![FLASH vs Vanilla NeRF](assets/comparison_table_1764119429807.png)
 
 </div>
 
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
+<div align="center">
 
-### 🚀 **Speed**
-- **Instant-NGP** hash encoding
-- Mixed precision training (FP16)
-- `torch.compile` optimization
-- Occupancy grid acceleration
+![Features](assets/features_grid_1764119448828.png)
 
-</td>
-<td width="50%">
-
-### 🎨 **Quality**
-- Multi-resolution hash tables
-- Hierarchical sampling
-- View-dependent colors
-- White/black background support
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 💻 **Developer Experience**
-- Clean, minimal codebase
-- Type hints everywhere
-- Comprehensive documentation
-- Production-ready
-
-</td>
-<td width="50%">
-
-### 🛠️ **Tools**
-- TensorBoard logging
-- Checkpoint management
-- Automatic dataset download
-- Rendering pipeline
-
-</td>
-</tr>
-</table>
+</div>
 
 ## 🚀 Quick Start
 
@@ -138,12 +96,11 @@ graph LR
 
 ### Core Components
 
-| Component | Description | Performance |
-|-----------|-------------|-------------|
-| **Hash Encoding** | Multi-resolution spatial hash | 16.78M params, 80D output |
-| **MLP Network** | Compact 2-layer network | 6.7K params, ultra-fast |
-| **Volumetric Renderer** | Differentiable ray marching | 128 samples/ray |
-| **Occupancy Grid** | Empty space skipping | 5-10x speedup |
+<div align="center">
+
+![Core Components](assets/core_components_1764119491098.png)
+
+</div>
 
 ## 💡 Usage
 
@@ -210,13 +167,7 @@ python render.py \
 
 <div align="center">
 
-| Scene | Training Time | PSNR | SSIM |
-|-------|---------------|------|------|
-| Lego | 2m 45s | 33.2 dB | 0.974 |
-| Ship | 2m 51s | 31.8 dB | 0.962 |
-| Drums | 2m 39s | 32.4 dB | 0.968 |
-
-*Tested on NVIDIA RTX 3090*
+![Results](assets/results_chart_1764119508872.png)
 
 </div>
 
