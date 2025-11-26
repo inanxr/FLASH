@@ -1,13 +1,6 @@
 <div align="center">
 
-```
-███████╗██╗      █████╗ ███████╗██╗  ██╗
-██╔════╝██║     ██╔══██╗██╔════╝██║  ██║
-█████╗  ██║     ███████║███████╗███████║
-██╔══╝  ██║     ██╔══██║╚════██║██╔══██║
-██║     ███████╗██║  ██║███████║██║  ██║
-╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-```
+<img src="assets/FLASH_LOGO.png" alt="FLASH Logo" width="400">
 
 ### ⚡ **Fast Learning for Accurate Scene Hashing**
 
@@ -33,8 +26,8 @@ FLASH is a **production-ready** implementation of Instant-NGP for Neural Radianc
 | Metric | Vanilla NeRF | **FLASH** |
 |--------|--------------|-----------|
 | **Training Time** | 5+ hours | **~3 min** ⚡ |
-| **Parameters** | ~5M | **67 MB** 📦 |
-| **Quality (PSNR)** | ~31 dB | **~33 dB** 🎨 |
+| **Model Size** | ~20 MB | **64 MB** 📦 |
+| **Quality (PSNR)** | ~31 dB | **~32 dB** 🎨 |
 | **Architecture** | MLPs only | **Hash + MLP** 🧠 |
 
 </div>
@@ -100,7 +93,7 @@ nvidia-smi
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/FLASH.git
+git clone https://github.com/inanxr/FLASH.git
 cd FLASH
 
 # Install dependencies
@@ -147,7 +140,7 @@ graph LR
 
 | Component | Description | Performance |
 |-----------|-------------|-------------|
-| **Hash Encoding** | Multi-resolution spatial hash | 16M params, 32D output |
+| **Hash Encoding** | Multi-resolution spatial hash | 16.78M params, 80D output |
 | **MLP Network** | Compact 2-layer network | 6.7K params, ultra-fast |
 | **Volumetric Renderer** | Differentiable ray marching | 128 samples/ray |
 | **Occupancy Grid** | Empty space skipping | 5-10x speedup |
@@ -204,6 +197,14 @@ python render.py \
 ```
 
 ## 📈 Results
+
+### Performance Visualization
+
+<div align="center">
+
+![Training Speed Comparison](assets/training_speed_comparison_1764118467681.png)
+
+</div>
 
 ### Sample Outputs
 
@@ -271,11 +272,11 @@ FLASH/
 Instead of encoding positions with slow MLPs, FLASH uses a clever **spatial hash table**:
 
 ```python
-# 16 resolution levels: 16 → 512
-# Each position → 32D feature vector
-# Total: 16M parameters (compact!)
+# 20 resolution levels: 16 → 512
+# Each position → 80D feature vector (20 levels × 4 features)
+# Total: 16.78M parameters in hash tables
 
-features = hash_encoding(xyz_positions)  # [N, 3] → [N, 32]
+features = hash_encoding(xyz_positions)  # [N, 3] → [N, 80]
 ```
 
 ### 2. Compact MLP Network
@@ -302,8 +303,8 @@ Key hyperparameters in `config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `num_levels` | 16 | Hash table resolution levels |
-| `log2_hashmap_size` | 19 | Hash table size (2^19 = 524K) |
+| `num_levels` | 20 | Hash table resolution levels |
+| `log2_hashmap_size` | 21 | Hash table size (2^21 = 2.1M) |
 | `batch_size` | 16384 | Rays per training step |
 | `learning_rate_hash` | 1e-2 | LR for hash encoding |
 | `learning_rate_mlp` | 1e-3 | LR for MLP network |
@@ -315,7 +316,7 @@ Contributions are welcome! Please feel free to submit pull requests.
 
 ```bash
 # Development setup
-git clone https://github.com/yourusername/FLASH.git
+git clone https://github.com/inanxr/FLASH.git
 cd FLASH
 pip install -r requirements.txt
 
@@ -340,6 +341,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Inan** - Project Maintainer
 
+- Email: [inan@iseer.co](mailto:inan@iseer.co)
 - GitHub: [@inanxr](https://github.com/inanxr)
 - Project Link: [https://github.com/inanxr/FLASH](https://github.com/inanxr/FLASH)
 
