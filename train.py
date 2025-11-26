@@ -37,6 +37,20 @@ class InstantNGPTrainer:
             base_resolution=config.base_resolution,
             finest_resolution=config.finest_resolution,
             hidden_dim=config.hidden_dim,
+            num_layers=config.num_layers,
+            use_viewdirs=config.use_viewdirs
+        ).to(self.device)
+        
+        if hasattr(torch, 'compile') and self.device.type == 'cuda':
+            try:
+                self.model = torch.compile(self.model)
+                print("   ✓ Compilation enabled")
+            except Exception as e:
+                print(f"   ⚠️  torch.compile unavailable (normal on Windows)")
+                print(f"   Continuing without compilation...")
+        
+        occupancy_grid = None
+        if config.use_occupancy_grid:
             print("📦 Setting up occupancy grid...")
             occupancy_grid = OccupancyGrid(
                 resolution=config.occupancy_resolution,
