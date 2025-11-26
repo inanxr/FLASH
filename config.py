@@ -56,21 +56,6 @@ class InstantNGPConfig:
     use_mixed_precision: bool = True
     resume_checkpoint: Optional[str] = None
     
-    def __post_init__(self):
-        import os
-        os.makedirs(self.log_dir, exist_ok=True)
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        if self.device == 'cpu':
-            print("⚠️  Running on CPU (no GPU detected)")
-            print("   Training time: ~25 min  |  With GPU: ~3 min")
-    
-    def print(self):
-        print("=" * 60)
-        print("⚡ Instant-NGP Configuration")
-        print("=" * 60)
-        print(f"\n📊 Hash Encoding:")
         print(f"   Levels: {self.num_levels}  |  Features: {self.features_per_level}/level")
         print(f"   Table: 2^{self.log2_hashmap_size} ({2**self.log2_hashmap_size:,} entries)")
         print(f"   Resolution: {self.base_resolution} → {self.finest_resolution}")

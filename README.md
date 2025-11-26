@@ -18,7 +18,7 @@
 
 ## 🎯 What is FLASH?
 
-FLASH is an **experimental implementation** of Instant-NGP for Neural Radiance Fields (NeRF). A learning project exploring how to train 3D scenes from 2D images in **~3 minutes** on a single GPU — **100x faster** than vanilla NeRF.
+FLASH is an **experimental implementation** of Instant-NGP for Neural Radiance Fields (NeRF). A learning project exploring how to train 3D scenes from 2D images in **10-15 minutes** on a single GPU — much faster than vanilla NeRF.
 
 > **Note:** This is a research and learning project. While functional, it's still under development as I continue learning and improving it.
 
@@ -65,7 +65,7 @@ pip install -r requirements.txt
 # Download example dataset
 python data/download_dataset.py --scene lego
 
-# Train the model (~3 min on GPU, ~25 min on CPU)
+# Train the model (10-15 min on GPU, ~25 min on CPU)
 python train.py --data_dir data/nerf_synthetic/lego
 
 # Render novel views
@@ -179,9 +179,9 @@ python render.py \
 
 Vanilla NeRF  ████████████████████████████████  5h 12m
 FLASH (CPU)   ████                              25m
-FLASH (GPU)   █                                 3m
+FLASH (GPU)   ███                               10-15m
 
-                ⚡ 100x faster on GPU!
+                ⚡ Much faster on GPU!
 ```
 
 ## 🗂️ Project Structure
