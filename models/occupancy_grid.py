@@ -69,7 +69,17 @@ class OccupancyGrid:
         
         for i in range(0, num_points, batch_size):
             batch = world_positions[i:i+batch_size]
-            _, density = model(batch, None)
+            
+            # --- FIX STARTS HERE ---
+            # Check if model has a density-only method (preferred)
+            if hasattr(model, 'forward_with_density_only'):
+                density = model.forward_with_density_only(batch)
+            else:
+                # Fallback: Provide dummy view directions (zeros) to satisfy model input requirements
+                dummy_dirs = torch.zeros_like(batch)
+                _, density = model(batch, dummy_dirs)
+            # --- FIX ENDS HERE ---
+
             densities.append(density)
         
         densities = torch.cat(densities, dim=0).squeeze(-1)

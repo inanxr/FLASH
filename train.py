@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import os
+import sys
 import time
 import argparse
 from typing import Dict, Tuple
@@ -41,13 +42,21 @@ class InstantNGPTrainer:
             use_viewdirs=config.use_viewdirs
         ).to(self.device)
         
-        if hasattr(torch, 'compile') and self.device.type == 'cuda':
+        # --- FIXED: Torch Compile Logic ---
+        # We explicitly disable torch.compile on Windows (os.name == 'nt') 
+        # because OpenAI Triton (required for compile) is not supported on Windows.
+        if os.name == 'nt':
+            print("   ⚠️  Windows detected: Disabling torch.compile (Triton not supported)")
+        elif hasattr(torch, 'compile') and self.device.type == 'cuda':
             try:
                 self.model = torch.compile(self.model)
                 print("   ✓ Compilation enabled")
             except Exception as e:
-                print(f"   ⚠️  torch.compile unavailable (normal on Windows)")
+                print(f"   ⚠️  torch.compile unavailable: {e}")
                 print(f"   Continuing without compilation...")
+        else:
+            print("   ℹ️  Skipping compilation (not on CUDA or not supported)")
+        # ----------------------------------
         
         occupancy_grid = None
         if config.use_occupancy_grid:
@@ -129,7 +138,15 @@ class InstantNGPTrainer:
         self.best_psnr = 0.0
         self.training_start_time = None
         
-        self.scaler = torch.cuda.amp.GradScaler() if config.use_mixed_precision else None
+        # Check for mixed precision support
+        if config.use_mixed_precision:
+            # Use the newer GradScaler if available, fallback to old location if not
+            try:
+                self.scaler = torch.cuda.amp.GradScaler()
+            except AttributeError:
+                self.scaler = torch.amp.GradScaler('cuda')
+        else:
+            self.scaler = None
     
     def train(self):
         config = self.config
@@ -175,7 +192,7 @@ class InstantNGPTrainer:
             if (self.renderer.occupancy_grid is not None and 
                 iteration % config.update_grid_every == 0 and 
                 iteration > 0):
-                print(f"\n🔄 Updating occupancy grid @ {iteration}...")
+                # print(f"\n🔄 Updating occupancy grid @ {iteration}...")
                 self.renderer.occupancy_grid.update_from_density(
                     self.model,
                     threshold=config.occupancy_threshold
@@ -210,16 +227,29 @@ class InstantNGPTrainer:
         target_rgb = target_rgb.to(self.device)
         
         if self.scaler is not None:
-            with torch.cuda.amp.autocast():
-                rgb_pred, depth, _  = self.renderer.render_rays(
-                    rays_o, rays_d,
-                    self.model,
-                    self.model,
-                    randomize=True,
-                    return_extras=False
-                )
-                
-                loss = compute_mse(rgb_pred, target_rgb)
+            # Modern AMP usage (handles deprecation warnings if using new torch)
+            try:
+                 # Try new syntax
+                with torch.amp.autocast('cuda'):
+                    rgb_pred, depth, _  = self.renderer.render_rays(
+                        rays_o, rays_d,
+                        self.model,
+                        self.model,
+                        randomize=True,
+                        return_extras=False
+                    )
+                    loss = compute_mse(rgb_pred, target_rgb)
+            except (AttributeError, TypeError):
+                # Fallback to old syntax
+                with torch.cuda.amp.autocast():
+                    rgb_pred, depth, _  = self.renderer.render_rays(
+                        rays_o, rays_d,
+                        self.model,
+                        self.model,
+                        randomize=True,
+                        return_extras=False
+                    )
+                    loss = compute_mse(rgb_pred, target_rgb)
             
             self.optimizer.zero_grad()
             self.scaler.scale(loss).backward()
@@ -241,7 +271,7 @@ class InstantNGPTrainer:
             has_nan_grad = False
             for name, param in self.model.named_parameters():
                 if param.grad is not None and not torch.isfinite(param.grad).all():
-                    print(f"⚠️  NaN/Inf gradient in {name}")
+                    # print(f"⚠️  NaN/Inf gradient in {name}")
                     has_nan_grad = True
             
             if has_nan_grad:
