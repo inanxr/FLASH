@@ -45,44 +45,6 @@ class InstantNGPConfig:
     
     experiment_name: str = 'instant_ngp_lego'
     log_dir: str = 'logs'
-    checkpoint_dir: str = 'checkpoints'
-    output_dir: str = 'outputs'
-    log_every: int = 10
-    validate_every: int = 500
-    save_checkpoint_every: int = 1000
-    
-    device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
-    seed: int = 42
-    use_mixed_precision: bool = True
-    resume_checkpoint: Optional[str] = None
-    
-        print(f"   Levels: {self.num_levels}  |  Features: {self.features_per_level}/level")
-        print(f"   Table: 2^{self.log2_hashmap_size} ({2**self.log2_hashmap_size:,} entries)")
-        print(f"   Resolution: {self.base_resolution} → {self.finest_resolution}")
-        
-        print(f"\n🧠 Network:")
-        print(f"   Architecture: {self.num_layers} layers × {self.hidden_dim}D")
-        print(f"   View-dependent: {'Yes' if self.use_viewdirs else 'No'}")
-        
-        print(f"\n🏃 Training:")
-        print(f"   Iterations: {self.num_iterations:,}  |  Batch: {self.batch_size} rays")
-        print(f"   LR (hash): {self.learning_rate_hash}  |  LR (MLP): {self.learning_rate_mlp}")
-        
-        print(f"\n📁 Data:")
-        print(f"   Dataset: {self.data_dir}")
-        print(f"   Resolution: {self.img_size}×{self.img_size}  |  BG: {'white' if self.white_background else 'black'}")
-        
-        print(f"\n🎨 Rendering:")
-        print(f"   Samples: {self.num_coarse_samples} (coarse)  |  Bounds: [{self.near}, {self.far}]")
-        
-        print(f"\n⚙️  System:")
-        print(f"   Device: {self.device}  |  Experiment: {self.experiment_name}")
-        print(f"   Logs: {self.log_dir}/{self.experiment_name}")
-        print("=" * 60)
-    
-    def to_dict(self) -> dict:
-        return {
-            'num_levels': self.num_levels,
             'features_per_level': self.features_per_level,
             'log2_hashmap_size': self.log2_hashmap_size,
             'base_resolution': self.base_resolution,
